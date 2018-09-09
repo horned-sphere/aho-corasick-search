@@ -1,0 +1,64 @@
+SimpleSearch:
+=============
+
+A simple library to find occurrence of a dictionary of "concepts" in sentences. The entirety of the development took approximately six hours. This was longer than the suggested time for the following reasons:
+
+1) The work was undertaken in several short sessions fitting around other commitments and so was not particularly efficient.
+2) I have very little experience in text processing and as not aware of the appropriate algorithms and so needed to undertake some research before development could begin.
+3) I decided to restructure some of the initial code I wrote to make it easier to follow for non-functional programmers.
+
+# Building and running the example application.
+
+This project is written in Scala and requires Java 8 and Scala 2.12.
+It is intended to be built using SBT version 1.1.5 (https://www.scala-sbt.org/).
+
+To build the project navigate to the directory containing this file and run:
+
+sbt compile
+
+To execute the automated tests run:
+
+sbt test
+
+To run the example application run:
+
+sbt "run CONCEPTS_FILE SENTENCES_FILE"
+
+Where CONCEPTS_FILE is a file where each line contains a concept and SENTENCES_FILE is a file where each line is a sentence for which the matching concepts should be printed. The example concepts and sentences are provided in concepts.txt and sentences.txt.
+
+The project has no runtime dependencies, beyond the Scala standard library and depends only on ScalaTest for its unit tests.
+
+# Algorithm and assumptions.
+
+The library uses the Aho-Corasick algorithm to search for occurrences of concepts within sentences. For a simple description of this see: https://en.wikipedia.org/wiki/Aho%E2%80%93Corasick_algorithm.
+
+The following definitions are and assumptions are used:
+
+1) A word is a sequence of letter and digit characters.
+2) A concept is a sequence of words separated by white space.
+3) Punctuation in concepts and sentences is treated as if it did not exist.
+4) Any quantity of white space is treated the same as a single space.
+5) Concepts are not case sensitive.
+6) A concept occurs in a sentence if its words occur, in order surrounded by white space or attached to the ends of the sentence.
+7) Concepts and sentences are in the latin character set an are encoded in UTF8/UTF16.
+8) Concepts are entirely syntactic (that is we do not interest ourselves in what the concept means, simply the characters that occur within it).
+9) The example application assumes that concepts and sentences are on a single line.
+10) The string pre-processing replaces punctuation with whitespace. In the case of apostrophes an hyphens this will generate two words from one. This may create spurious matches/mis-matches. A more sophisticated approach could deal with punctuation in a more sophisticated way.
+
+# Complexity
+
+Let k be the number of words in the dictionary and n be the sum of the lengths of all words in the dictionary.Constructing the Aho-Corasick automaton is of:
+
+O(n)
+
+For a given sentence of length m, containing q matches from the dictionary, using the Aho-Corasick automaton to find the matches is of:
+
+O(n + m + q)
+
+# Limitations of this approach in a production environment.
+
+Although the Aho-Corasick algorithm is efficient, it could still be unacceptably slow (as written) for a dictionary containing a very large number of words. This problem could be addressed by partitioning the dictionary (for example on the first letter) and then constructing a separate automaton for each partition. This would then allow the search process to be accelerated by finding the occurrences of the words in each partition in parallel (either across the cores of a single machine or across a cluster of machines).
+
+Another potential problem is memory requirement of the automaton which could be excessive for very large dictionaries. There are two ways in which this could be addressed. Firstly there are more complex implementations of the Aho-Corasick algorithm wich use a more compact data structure. Secondly, the alphabet used for construct the automatic could be optimized for the specific dictionary. For example this could involve using pairs or triples of characters or entire words for nodes of the trie.
+
+However, the main limitation of this implementation is that it does not consider the semantics of the concepts; it simply looks for strings of characters. Therefore it will make very obvious errors such as confusing homonyms, treating synonyms as different concepts and not recognizing concepts that are phrased in a different way, misspelled or broken up by punctuation. Addressing this would be very challenging is beyond the scope of this exercise.
